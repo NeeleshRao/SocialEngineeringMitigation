@@ -6,8 +6,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 app = Flask(__name__)
-account_sid = 'ACd87aa90218b882af9b3eae7aa763ef16'
-auth_token = '654aa4cbf5d6da972cec7a57722d369f'
+account_sid = 'TWILIO ACCOUNT SID'
+auth_token = 'TWILIO AUTH TOKEN'
 client = Client(account_sid,auth_token)
 tokenizer = AutoTokenizer.from_pretrained("hamzab/roberta-fake-news-classification")
 model = AutoModelForSequenceClassification.from_pretrained("hamzab/roberta-fake-news-classification")
