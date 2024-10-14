@@ -5,15 +5,20 @@ from twilio.rest import Client
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from transformers import pipeline
+from flask_pymongo import PyMongo
 from newspaper import Article
 
 app = Flask(__name__)
-account_sid = 'SID'
-auth_token = 'AUTH_TOKEN'
+account_sid = 'KEY'
+auth_token = 'KEY'
 client = Client(account_sid,auth_token)
 tokenizer = AutoTokenizer.from_pretrained("hamzab/roberta-fake-news-classification")
 model = AutoModelForSequenceClassification.from_pretrained("hamzab/roberta-fake-news-classification")
 pipe = pipeline("text-classification", model="ealvaradob/bert-finetuned-phishing")
+app.secret_key = 'KEY/'
+app.config["MONGO_URI"] = "mongodb://localhost:27017/FakeNews"
+mongo = PyMongo(app)
+
 
 def predict_fake(title,text):
     input_str = "<title>" + title + "<content>" +  text + "<end>"
@@ -41,10 +46,16 @@ def reply():
             article.parse()
             x = predict_fake(article.title,article.text)
             if x["Fake"]>x["Real"]:
+                if not mongo.db.NewsList.find_one({'Body':article.title}):
+                    mongo.db.NewsList.insert_one({'Type':'News','Body':article.title,'Prediction':"Fake",'Score':round(x["Fake"]*100,4)})
                 return respond('Fake news with score {}%'.format(round(x["Fake"]*100,3)))
             else:
+                if not mongo.db.NewsList.find_one({'Body':article.title}):
+                    mongo.db.NewsList.insert_one({'Type':'News','Body':article.title,'Prediction':"Real",'Score':round(x["Real"]*100,4)})
                 return respond('Real news with score {}%'.format(round(x["Real"]*100,3)))
         else:
             t = pipe(inp[0])
+            if not mongo.db.NewsList.find_one({'Body':inp[0]}):
+                mongo.db.NewsList.insert_one({'Type':'Social Media','Body':inp[0],'Prediction':t[0]['label'],'Score':round(t[0]['score']*100,4)})
             return respond('Given snippet is ' + t[0]['label'] + ' with score ' + str(round(t[0]['score']*100,4)) +'%') 
             
